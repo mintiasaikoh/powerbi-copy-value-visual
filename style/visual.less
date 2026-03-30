@@ -1,87 +1,117 @@
+@border-color: #e1e1e1;
+@header-bg: #f3f3f3;
+@row-alt-bg: #fafafa;
+@placeholder-color: #888888;
 @button-primary: #0078d4;
 @button-success: #107c10;
-@border-color: #d0d0d0;
-@placeholder-color: #888888;
-@value-bg: #f8f8f8;
 @font-family: "Segoe UI", "Yu Gothic UI", Meiryo, sans-serif;
 
-.copy-value-visual {
+:host,
+div {
+    box-sizing: border-box;
+}
+
+.placeholder {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     height: 100%;
     width: 100%;
-    padding: 8px;
-    box-sizing: border-box;
+    color: @placeholder-color;
+    font-style: italic;
     font-family: @font-family;
-    gap: 8px;
+    text-align: center;
+    padding: 16px;
+}
+
+.cv-table {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: auto;
+    font-family: @font-family;
+    border: 1px solid @border-color;
+    border-radius: 4px;
+}
+
+.cv-header {
+    display: flex;
+    flex-direction: row;
+    background: @header-bg;
+    border-bottom: 2px solid @border-color;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.cv-row {
+    display: flex;
+    flex-direction: row;
+    border-bottom: 1px solid @border-color;
+
+    &:last-child {
+        border-bottom: none;
+    }
+
+    &:hover {
+        background: #e8f0fe;
+    }
+}
+
+.cv-row-alt {
+    background: @row-alt-bg;
+}
+
+.cv-cell {
+    flex: 1;
+    min-width: 60px;
+    padding: 6px 10px;
+    font-size: 14px;
     overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    align-self: center;
+}
 
-    .row-count-label {
-        display: none;
-        font-size: 11px;
-        color: @placeholder-color;
-        text-align: right;
-        padding: 0 2px;
-        flex-shrink: 0;
+.cv-header-cell {
+    font-weight: 600;
+    color: #323130;
+}
+
+.cv-btn-cell {
+    flex: 0 0 auto;
+    width: 70px;
+    min-width: 70px;
+    padding: 4px 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cv-copy-btn {
+    width: 100%;
+    padding: 3px 6px;
+    background-color: @button-primary;
+    color: #ffffff;
+    border: none;
+    border-radius: 3px;
+    font-family: @font-family;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.15s ease;
+
+    &:hover {
+        background-color: darken(@button-primary, 8%);
     }
 
-    .value-display {
-        flex: 1;
-        min-height: 0;
-        overflow-y: auto;
-        overflow-x: auto;
-        background: @value-bg;
-        border: 1px solid @border-color;
-        border-radius: 4px;
-        padding: 8px 10px;
-        font-size: 14px;
-        white-space: pre;
-        word-break: break-all;
-        line-height: 1.6;
-        box-sizing: border-box;
-
-        &.placeholder {
-            color: @placeholder-color;
-            font-style: italic;
-            white-space: normal;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-        }
+    &:active {
+        background-color: darken(@button-primary, 15%);
     }
 
-    .copy-button {
-        flex-shrink: 0;
-        width: 100%;
-        min-height: 36px;
-        padding: 6px 16px;
-        background-color: @button-primary;
-        color: #ffffff;
-        border: none;
-        border-radius: 4px;
-        font-size: 14px;
-        font-family: @font-family;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background-color 0.15s ease, opacity 0.15s ease;
-        box-sizing: border-box;
-
-        &:hover:not(:disabled) {
-            background-color: darken(@button-primary, 8%);
-        }
-
-        &:active:not(:disabled) {
-            background-color: darken(@button-primary, 15%);
-        }
-
-        &:disabled {
-            opacity: 0.45;
-            cursor: not-allowed;
-        }
-
-        &.copied {
-            background-color: @button-success;
-        }
+    &.copied {
+        background-color: @button-success;
     }
 }

@@ -15,44 +15,14 @@ import "./../style/visual.less";
 export class Visual implements IVisual {
     private host: IVisualHost;
     private target: HTMLElement;
-    private container: HTMLElement;
-    private valueDisplay: HTMLElement;
-    private copyButton: HTMLButtonElement;
-    private rowCountLabel: HTMLElement;
     private formattingSettings: VisualFormattingSettingsModel;
     private formattingSettingsService: FormattingSettingsService;
-    private currentRows: powerbi.PrimitiveValue[][] = [];
-    private copyTimeoutId: ReturnType<typeof setTimeout> | null = null;
+    private copyTimeouts: Map<HTMLButtonElement, ReturnType<typeof setTimeout>> = new Map();
 
     constructor(options: VisualConstructorOptions) {
         this.host = options.host;
         this.target = options.element;
         this.formattingSettingsService = new FormattingSettingsService();
-        this.buildDOM();
-    }
-
-    private buildDOM(): void {
-        this.container = document.createElement("div");
-        this.container.className = "copy-value-visual";
-
-        this.rowCountLabel = document.createElement("div");
-        this.rowCountLabel.className = "row-count-label";
-        this.rowCountLabel.style.display = "none";
-
-        this.valueDisplay = document.createElement("div");
-        this.valueDisplay.className = "value-display placeholder";
-        this.valueDisplay.textContent = "テーブルから行を選択してください";
-
-        this.copyButton = document.createElement("button");
-        this.copyButton.className = "copy-button";
-        this.copyButton.textContent = "値をコピー";
-        this.copyButton.disabled = true;
-        this.copyButton.addEventListener("click", () => this.handleCopy());
-
-        this.container.appendChild(this.rowCountLabel);
-        this.container.appendChild(this.valueDisplay);
-        this.container.appendChild(this.copyButton);
-        this.target.appendChild(this.container);
     }
 
     public update(options: VisualUpdateOptions): void {
@@ -63,92 +33,98 @@ export class Visual implements IVisual {
             dataView
         );
 
-        this.applySettings();
+        this.render(dataView);
+    }
+
+    private render(dataView: DataView): void {
+        this.target.innerHTML = "";
+        this.copyTimeouts.clear();
+
+        const disp = this.formattingSettings.displaySettings;
+        const btn = this.formattingSettings.buttonSettings;
+        const fontSize = Math.max(10, Math.min(Number(disp.fontSize.value) || 14, 32));
 
         if (!dataView?.table?.rows?.length) {
-            this.showPlaceholder();
+            const placeholder = document.createElement("div");
+            placeholder.className = "placeholder";
+            placeholder.textContent = "テーブルから行を選択してください";
+            placeholder.style.fontSize = `${fontSize}px`;
+            this.target.appendChild(placeholder);
             return;
         }
 
-        this.currentRows = dataView.table.rows as powerbi.PrimitiveValue[][];
-        this.renderValues(dataView);
-    }
-
-    private applySettings(): void {
-        const btn = this.formattingSettings.buttonSettings;
-        const disp = this.formattingSettings.displaySettings;
-
-        this.copyButton.textContent = btn.buttonText.value || "値をコピー";
-        this.copyButton.style.backgroundColor = btn.backgroundColor.value.value || "#0078d4";
-        this.copyButton.style.color = btn.fontColor.value.value || "#ffffff";
-
-        const fontSize = Math.max(10, Math.min(Number(disp.fontSize.value) || 14, 32));
-        this.valueDisplay.style.fontSize = `${fontSize}px`;
-        this.copyButton.style.fontSize = `${fontSize}px`;
-    }
-
-    private renderValues(dataView: DataView): void {
-        const disp = this.formattingSettings.displaySettings;
+        const rows = dataView.table.rows as powerbi.PrimitiveValue[][];
+        const columns = dataView.table.columns;
         const separatorValue = (disp.separator.value as { value: string })?.value ?? "tab";
         const separator = this.getSeparatorChar(separatorValue);
-        const rows = this.currentRows;
 
-        if (rows.length > 1) {
-            this.rowCountLabel.textContent = `${rows.length} 行選択中`;
-            this.rowCountLabel.style.display = "block";
-        } else {
-            this.rowCountLabel.style.display = "none";
-        }
+        const table = document.createElement("div");
+        table.className = "cv-table";
 
-        if (disp.showValues.value) {
-            const lines = rows.map(row =>
-                row.map(v => this.formatValue(v)).join(separator)
-            );
-            this.valueDisplay.textContent = lines.join("\n");
-            this.valueDisplay.classList.remove("placeholder");
-            this.valueDisplay.style.display = "block";
-        } else {
-            this.valueDisplay.style.display = "none";
-        }
+        // ヘッダー
+        const header = document.createElement("div");
+        header.className = "cv-header";
+        columns.forEach(col => {
+            const cell = document.createElement("div");
+            cell.className = "cv-cell cv-header-cell";
+            cell.textContent = col.displayName;
+            cell.style.fontSize = `${fontSize}px`;
+            header.appendChild(cell);
+        });
+        const headerBtn = document.createElement("div");
+        headerBtn.className = "cv-cell cv-btn-cell cv-header-cell";
+        header.appendChild(headerBtn);
+        table.appendChild(header);
 
-        this.copyButton.disabled = false;
+        // データ行
+        rows.forEach((row, rowIndex) => {
+            const rowEl = document.createElement("div");
+            rowEl.className = "cv-row" + (rowIndex % 2 === 1 ? " cv-row-alt" : "");
+
+            row.forEach(val => {
+                const cell = document.createElement("div");
+                cell.className = "cv-cell";
+                cell.textContent = this.formatValue(val);
+                cell.style.fontSize = `${fontSize}px`;
+                cell.title = this.formatValue(val);
+                rowEl.appendChild(cell);
+            });
+
+            const btnCell = document.createElement("div");
+            btnCell.className = "cv-cell cv-btn-cell";
+
+            const copyBtn = document.createElement("button");
+            copyBtn.className = "cv-copy-btn";
+            copyBtn.textContent = btn.buttonText.value || "コピー";
+            copyBtn.style.backgroundColor = btn.backgroundColor.value.value || "#0078d4";
+            copyBtn.style.color = btn.fontColor.value.value || "#ffffff";
+            copyBtn.style.fontSize = `${Math.max(10, fontSize - 2)}px`;
+
+            const rowText = row.map(v => this.formatValue(v)).join(separator);
+            copyBtn.addEventListener("click", () => this.handleCopy(copyBtn, rowText, btn.buttonText.value || "コピー"));
+
+            btnCell.appendChild(copyBtn);
+            rowEl.appendChild(btnCell);
+            table.appendChild(rowEl);
+        });
+
+        this.target.appendChild(table);
     }
 
-    private showPlaceholder(): void {
-        this.currentRows = [];
-        this.rowCountLabel.style.display = "none";
-        this.valueDisplay.textContent = "テーブルから行を選択してください";
-        this.valueDisplay.classList.add("placeholder");
-        this.valueDisplay.style.display = "block";
-        this.copyButton.disabled = true;
-
-        const btnText = this.formattingSettings?.buttonSettings?.buttonText?.value;
-        this.copyButton.textContent = btnText || "値をコピー";
-    }
-
-    private async handleCopy(): Promise<void> {
-        if (this.currentRows.length === 0) return;
-
-        const separatorValue = (this.formattingSettings.displaySettings.separator.value as { value: string })?.value ?? "tab";
-        const separator = this.getSeparatorChar(separatorValue);
-        const lines = this.currentRows.map(row =>
-            row.map(v => this.formatValue(v)).join(separator)
-        );
-        const text = lines.join("\r\n");
-
+    private async handleCopy(btn: HTMLButtonElement, text: string, originalLabel: string): Promise<void> {
         try {
             if (navigator.clipboard?.writeText) {
                 await navigator.clipboard.writeText(text);
             } else {
                 this.fallbackCopy(text);
             }
-            this.showCopyFeedback();
+            this.showCopyFeedback(btn, originalLabel);
         } catch {
             try {
                 this.fallbackCopy(text);
-                this.showCopyFeedback();
-            } catch (fallbackErr) {
-                console.error("[CopyValueVisual] コピー失敗:", fallbackErr);
+                this.showCopyFeedback(btn, originalLabel);
+            } catch (err) {
+                console.error("[CopyValueVisual] コピー失敗:", err);
             }
         }
     }
@@ -165,16 +141,17 @@ export class Visual implements IVisual {
         if (!success) throw new Error("execCommand('copy') failed");
     }
 
-    private showCopyFeedback(): void {
-        if (this.copyTimeoutId !== null) clearTimeout(this.copyTimeoutId);
-        this.copyButton.textContent = "コピーしました ✓";
-        this.copyButton.classList.add("copied");
-        this.copyTimeoutId = setTimeout(() => {
-            const btnText = this.formattingSettings?.buttonSettings?.buttonText?.value;
-            this.copyButton.textContent = btnText || "値をコピー";
-            this.copyButton.classList.remove("copied");
-            this.copyTimeoutId = null;
+    private showCopyFeedback(btn: HTMLButtonElement, originalLabel: string): void {
+        const existing = this.copyTimeouts.get(btn);
+        if (existing !== undefined) clearTimeout(existing);
+        btn.textContent = "✓";
+        btn.classList.add("copied");
+        const id = setTimeout(() => {
+            btn.textContent = originalLabel;
+            btn.classList.remove("copied");
+            this.copyTimeouts.delete(btn);
         }, 2000);
+        this.copyTimeouts.set(btn, id);
     }
 
     private getSeparatorChar(separator: string): string {
