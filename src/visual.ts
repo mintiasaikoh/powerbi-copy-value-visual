@@ -57,6 +57,7 @@ export class Visual implements IVisual {
         const columns = dataView.table.columns;
         const separatorValue = (disp.separator.value as { value: string })?.value ?? "tab";
         const separator = this.getSeparatorChar(separatorValue);
+        const copyColIndex = Number(disp.copyColumnIndex.value) || 0; // 0=全列, 1始まり
 
         const table = document.createElement("div");
         table.className = "cv-table";
@@ -64,11 +65,13 @@ export class Visual implements IVisual {
         // ヘッダー
         const header = document.createElement("div");
         header.className = "cv-header";
-        columns.forEach(col => {
+        columns.forEach((col, colIdx) => {
             const cell = document.createElement("div");
             cell.className = "cv-cell cv-header-cell";
-            cell.textContent = col.displayName;
             cell.style.fontSize = `${fontSize}px`;
+            const isTarget = copyColIndex > 0 && copyColIndex === colIdx + 1;
+            cell.textContent = col.displayName + (isTarget ? " ★" : "");
+            if (isTarget) cell.classList.add("cv-col-target");
             header.appendChild(cell);
         });
         const headerBtn = document.createElement("div");
@@ -81,9 +84,11 @@ export class Visual implements IVisual {
             const rowEl = document.createElement("div");
             rowEl.className = "cv-row" + (rowIndex % 2 === 1 ? " cv-row-alt" : "");
 
-            row.forEach(val => {
+            row.forEach((val, colIdx) => {
                 const cell = document.createElement("div");
                 cell.className = "cv-cell";
+                const isTarget = copyColIndex > 0 && copyColIndex === colIdx + 1;
+                if (isTarget) cell.classList.add("cv-col-target");
                 cell.textContent = this.formatValue(val);
                 cell.style.fontSize = `${fontSize}px`;
                 cell.title = this.formatValue(val);
@@ -100,8 +105,15 @@ export class Visual implements IVisual {
             copyBtn.style.color = btn.fontColor.value.value || "#ffffff";
             copyBtn.style.fontSize = `${Math.max(10, fontSize - 2)}px`;
 
-            const rowText = row.map(v => this.formatValue(v)).join(separator);
-            copyBtn.addEventListener("click", () => this.handleCopy(copyBtn, rowText, btn.buttonText.value || "コピー"));
+            let copyText: string;
+            if (copyColIndex > 0 && copyColIndex <= row.length) {
+                // 指定列のみ
+                copyText = this.formatValue(row[copyColIndex - 1]);
+            } else {
+                // 全列（デフォルト）
+                copyText = row.map(v => this.formatValue(v)).join(separator);
+            }
+            copyBtn.addEventListener("click", () => this.handleCopy(copyBtn, copyText, btn.buttonText.value || "コピー"));
 
             btnCell.appendChild(copyBtn);
             rowEl.appendChild(btnCell);

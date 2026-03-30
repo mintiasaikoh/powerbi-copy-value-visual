@@ -60,12 +60,23 @@ class DisplaySettingsCard extends FormattingSettingsCard {
         value: true,
     });
 
+    copyColumnIndex = new formattingSettings.NumUpDown({
+        name: "copyColumnIndex",
+        displayName: "コピーする列番号 (0=全列)",
+        value: 0,
+        options: {
+            minValue: { type: powerbi.visuals.ValidatorType.Min, value: 0 },
+            maxValue: { type: powerbi.visuals.ValidatorType.Max, value: 50 },
+        },
+    });
+
     name: string = "displaySettings";
     displayName: string = "表示設定";
     slices: Array<FormattingSettingsSlice> = [
         this.fontSize,
         this.separator,
         this.showValues,
+        this.copyColumnIndex,
     ];
 }
 
