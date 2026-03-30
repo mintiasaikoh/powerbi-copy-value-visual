@@ -1,0 +1,102 @@
+{
+  "dataRoles": [
+    {
+      "name": "values",
+      "displayName": "コピーする値",
+      "displayNameKey": "Values",
+      "kind": "GroupingOrMeasure"
+    }
+  ],
+  "dataViewMappings": [
+    {
+      "table": {
+        "rows": {
+          "for": {
+            "in": "values"
+          },
+          "dataReductionAlgorithm": {
+            "top": {
+              "count": 1000
+            }
+          }
+        }
+      }
+    }
+  ],
+  "supportsHighlight": true,
+  "objects": {
+    "buttonSettings": {
+      "displayName": "ボタン設定",
+      "properties": {
+        "buttonText": {
+          "displayName": "ボタンテキスト",
+          "type": {
+            "text": true
+          }
+        },
+        "backgroundColor": {
+          "displayName": "ボタン背景色",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        },
+        "fontColor": {
+          "displayName": "ボタン文字色",
+          "type": {
+            "fill": {
+              "solid": {
+                "color": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "displaySettings": {
+      "displayName": "表示設定",
+      "properties": {
+        "fontSize": {
+          "displayName": "フォントサイズ",
+          "type": {
+            "numeric": true
+          }
+        },
+        "separator": {
+          "displayName": "区切り文字",
+          "type": {
+            "enumeration": [
+              {
+                "displayName": "タブ",
+                "value": "tab"
+              },
+              {
+                "displayName": "カンマ",
+                "value": "comma"
+              },
+              {
+                "displayName": "パイプ",
+                "value": "pipe"
+              }
+            ]
+          }
+        },
+        "showValues": {
+          "displayName": "値を表示する",
+          "type": {
+            "bool": true
+          }
+        }
+      }
+    }
+  },
+  "privileges": [
+    {
+      "name": "ExportContent",
+      "essential": false
+    }
+  ]
+}

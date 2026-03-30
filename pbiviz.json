@@ -1,0 +1,24 @@
+{
+  "visual": {
+    "name": "copyValueVisual",
+    "displayName": "Copy Value Visual",
+    "guid": "copyValueVisual12e8FA613A484DD4B65E2A89E0A23C4E",
+    "visualClassName": "Visual",
+    "version": "1.0.0.0",
+    "description": "テーブルビジュアルで選択した行の値をワンクリックでクリップボードにコピーするカスタムビジュアル",
+    "supportUrl": "https://github.com/mintiasaikoh/powerbi-copy-value-visual/issues",
+    "gitHubUrl": "https://github.com/mintiasaikoh/powerbi-copy-value-visual"
+  },
+  "apiVersion": "5.3.0",
+  "author": {
+    "name": "Your Name",
+    "email": "yourname@example.com"
+  },
+  "assets": {
+    "icon": "assets/icon.png"
+  },
+  "externalJS": null,
+  "style": "style/visual.less",
+  "capabilities": "capabilities.json",
+  "dependencies": null
+}

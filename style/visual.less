@@ -1,0 +1,87 @@
+@button-primary: #0078d4;
+@button-success: #107c10;
+@border-color: #d0d0d0;
+@placeholder-color: #888888;
+@value-bg: #f8f8f8;
+@font-family: "Segoe UI", "Yu Gothic UI", Meiryo, sans-serif;
+
+.copy-value-visual {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    padding: 8px;
+    box-sizing: border-box;
+    font-family: @font-family;
+    gap: 8px;
+    overflow: hidden;
+
+    .row-count-label {
+        display: none;
+        font-size: 11px;
+        color: @placeholder-color;
+        text-align: right;
+        padding: 0 2px;
+        flex-shrink: 0;
+    }
+
+    .value-display {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: auto;
+        background: @value-bg;
+        border: 1px solid @border-color;
+        border-radius: 4px;
+        padding: 8px 10px;
+        font-size: 14px;
+        white-space: pre;
+        word-break: break-all;
+        line-height: 1.6;
+        box-sizing: border-box;
+
+        &.placeholder {
+            color: @placeholder-color;
+            font-style: italic;
+            white-space: normal;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+    }
+
+    .copy-button {
+        flex-shrink: 0;
+        width: 100%;
+        min-height: 36px;
+        padding: 6px 16px;
+        background-color: @button-primary;
+        color: #ffffff;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        font-family: @font-family;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.15s ease, opacity 0.15s ease;
+        box-sizing: border-box;
+
+        &:hover:not(:disabled) {
+            background-color: darken(@button-primary, 8%);
+        }
+
+        &:active:not(:disabled) {
+            background-color: darken(@button-primary, 15%);
+        }
+
+        &:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        &.copied {
+            background-color: @button-success;
+        }
+    }
+}
