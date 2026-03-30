@@ -2,6 +2,17 @@
 
 Power BI レポート上でテーブルビジュアルの選択行の値を、ボタン一発でクリップボードにコピーできるカスタムビジュアルです。
 
+## ダウンロード
+
+**[⬇ 最新の .pbiviz ファイルをダウンロード](https://github.com/mintiasaikoh/powerbi-copy-value-visual/releases/latest)**
+
+## インストール手順
+
+1. 上記リンクから `.pbiviz` ファイルをダウンロード
+2. Power BI Desktop を開く
+3. 「視覚化」ペイン → 「`...`」→「**ファイルからビジュアルをインポート**」
+4. ダウンロードした `.pbiviz` ファイルを選択
+
 ## 機能
 
 - 隣接するテーブルビジュアルで選択した行の値を自動受信（クロスフィルター）
@@ -9,33 +20,6 @@ Power BI レポート上でテーブルビジュアルの選択行の値を、�
 - 複数列はタブ区切り、複数行は改行区切り（Excel 貼り付け互換）
 - コピー成功時にボタンテキストを一時的に変更してフィードバック
 - Format Pane からボタンテキスト・色・区切り文字・フォントサイズを設定可能
-
-## インストール手順
-
-### 前提条件
-
-- Power BI Desktop または Power BI Service（カスタムビジュアルのインポートが許可されていること）
-
-### ビルド済みファイルを使う場合
-
-1. `dist/copyValueVisual.pbiviz` をダウンロード
-2. Power BI Desktop で「視覚化」ペイン → 「...」→「ファイルからビジュアルをインポート」
-3. `.pbiviz` ファイルを選択してインポート
-
-### ソースからビルドする場合
-
-```bash
-# 依存関係のインストール
-npm install
-
-# 開発サーバー起動（Power BI Desktop でのデバッグ用）
-npm run start
-
-# .pbiviz ファイルのパッケージ化
-npm run package
-```
-
-生成された `dist/copyValueVisual.pbiviz` を Power BI にインポートしてください。
 
 ## 使い方
 
