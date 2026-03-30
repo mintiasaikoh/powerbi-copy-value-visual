@@ -26,8 +26,8 @@ class ButtonSettingsCard extends FormattingSettingsCard {
         value: { value: "#ffffff" },
     });
 
-    name: string = "buttonSettings";
-    displayName: string = "ボタン設定";
+    name = "buttonSettings";
+    displayName = "ボタン設定";
     slices: Array<FormattingSettingsSlice> = [
         this.buttonText,
         this.backgroundColor,
@@ -70,8 +70,8 @@ class DisplaySettingsCard extends FormattingSettingsCard {
         },
     });
 
-    name: string = "displaySettings";
-    displayName: string = "表示設定";
+    name = "displaySettings";
+    displayName = "表示設定";
     slices: Array<FormattingSettingsSlice> = [
         this.fontSize,
         this.separator,

@@ -39,6 +39,7 @@ export class Visual implements IVisual {
     private render(dataView: DataView): void {
         this.target.innerHTML = "";
         this.copyTimeouts.clear();
+        this.target.style.cssText = "display:flex;flex-direction:column;height:100%;overflow:hidden;";
 
         const disp = this.formattingSettings.displaySettings;
         const btn = this.formattingSettings.buttonSettings;
@@ -58,6 +59,22 @@ export class Visual implements IVisual {
         const separatorValue = (disp.separator.value as { value: string })?.value ?? "tab";
         const separator = this.getSeparatorChar(separatorValue);
         const copyColIndex = Number(disp.copyColumnIndex.value) || 0; // 0=全列, 1始まり
+        const outOfRange = copyColIndex > columns.length;
+
+        // インフォバー：コピー対象列を明示
+        const infoBar = document.createElement("div");
+        infoBar.className = "cv-infobar";
+        if (outOfRange) {
+            infoBar.classList.add("cv-infobar-warn");
+            infoBar.textContent = `列番号 ${copyColIndex} は範囲外です（フィールド数: ${columns.length}）。書式設定を確認してください。`;
+        } else if (copyColIndex === 0) {
+            const names = columns.map((c, i) => `${i + 1}: ${c.displayName}`).join("  /  ");
+            infoBar.textContent = `コピー対象: 全列  |  ${names}`;
+        } else {
+            infoBar.textContent = `コピー対象: 列 ${copyColIndex}「${columns[copyColIndex - 1].displayName}」`;
+            infoBar.classList.add("cv-infobar-target");
+        }
+        this.target.appendChild(infoBar);
 
         const table = document.createElement("div");
         table.className = "cv-table";
