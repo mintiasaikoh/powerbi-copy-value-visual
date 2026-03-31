@@ -60,20 +60,12 @@ class DisplaySettingsCard extends FormattingSettingsCard {
         value: true,
     });
 
-    copyColumnName = new formattingSettings.ItemDropdown({
-        name: "copyColumnName",
-        displayName: "コピーする列",
-        items: [{ displayName: "全列", value: "" }],
-        value: { displayName: "全列", value: "" },
-    });
-
     name = "displaySettings";
     displayName = "表示設定";
     slices: Array<FormattingSettingsSlice> = [
         this.fontSize,
         this.separator,
         this.showValues,
-        this.copyColumnName,
     ];
 }
 

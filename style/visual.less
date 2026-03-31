@@ -94,31 +94,38 @@ div {
     font-weight: 600;
 }
 
-.cv-infobar {
+.cv-selector-bar {
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
     padding: 4px 8px;
-    font-size: 11px;
-    font-family: @font-family;
-    color: #605e5c;
     background: #f3f2f1;
     border: 1px solid @border-color;
     border-radius: 4px 4px 0 0;
     border-bottom: none;
+}
+
+.cv-selector-label {
+    color: #605e5c;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-family: @font-family;
 }
 
-.cv-infobar-target {
-    background: #e8f0fe;
-    color: #1a4e9e;
-    font-weight: 600;
-}
+.cv-column-select {
+    flex: 1;
+    min-width: 0;
+    padding: 2px 4px;
+    border: 1px solid @border-color;
+    border-radius: 3px;
+    background: #ffffff;
+    font-family: @font-family;
+    cursor: pointer;
 
-.cv-infobar-warn {
-    background: #fff4ce;
-    color: #8a6914;
-    font-weight: 600;
+    &:focus {
+        outline: 2px solid @button-primary;
+        outline-offset: -1px;
+    }
 }
 
 .cv-table {

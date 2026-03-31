@@ -93,7 +93,7 @@
         "copyColumnName": {
           "displayName": "コピーする列",
           "type": {
-            "enumeration": []
+            "text": true
           }
         }
       }

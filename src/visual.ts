@@ -18,7 +18,6 @@ export class Visual implements IVisual {
     private formattingSettings: VisualFormattingSettingsModel;
     private formattingSettingsService: FormattingSettingsService;
     private copyTimeouts: Map<HTMLButtonElement, ReturnType<typeof setTimeout>> = new Map();
-    private currentColumns: powerbi.DataViewMetadataColumn[] = [];
 
     constructor(options: VisualConstructorOptions) {
         this.host = options.host;
@@ -29,43 +28,19 @@ export class Visual implements IVisual {
     public update(options: VisualUpdateOptions): void {
         const dataView: DataView = options.dataViews && options.dataViews[0];
 
-        if (dataView?.table?.columns) {
-            this.currentColumns = dataView.table.columns;
-        }
-
-        // populateFormattingSettingsModel は静的なアイテムリストで復元するため、
-        // ItemDropdown の選択値が動的列名の場合に失われる。
-        // そのため populate 後にアイテムと保存値を手動で復元する。
         this.formattingSettings = this.formattingSettingsService.populateFormattingSettingsModel(
             VisualFormattingSettingsModel,
             dataView
         );
 
-        this.restoreColumnDropdown(dataView);
-        this.render(dataView);
+        // text 型で保存された選択列名を取得（確実に永続化される）
+        const savedColName = dataView?.metadata?.objects
+            ?.["displaySettings"]?.["copyColumnName"] as string ?? "";
+
+        this.render(dataView, savedColName);
     }
 
-    private restoreColumnDropdown(dataView: DataView): void {
-        const allItem = { displayName: "全列", value: "" };
-        const colItems = [
-            allItem,
-            ...this.currentColumns.map(c => ({ displayName: c.displayName, value: c.displayName })),
-        ];
-
-        const dropdown = this.formattingSettings.displaySettings.copyColumnName;
-        dropdown.items = colItems;
-
-        // dataView.metadata.objects から保存値を読む
-        // enumeration 型は文字列、または {value: string} で返る場合がある
-        const raw = dataView?.metadata?.objects?.["displaySettings"]?.["copyColumnName"];
-        const rawVal = typeof raw === "string" ? raw
-            : (raw as { value?: string } | undefined)?.value ?? "";
-
-        const match = colItems.find(item => item.value === rawVal);
-        dropdown.value = match ?? allItem;
-    }
-
-    private render(dataView: DataView): void {
+    private render(dataView: DataView, selectedColName: string): void {
         this.target.innerHTML = "";
         this.copyTimeouts.clear();
         this.target.style.cssText = "display:flex;flex-direction:column;height:100%;overflow:hidden;";
@@ -87,29 +62,15 @@ export class Visual implements IVisual {
         const columns = dataView.table.columns;
         const separatorValue = (disp.separator.value as { value: string })?.value ?? "tab";
         const separator = this.getSeparatorChar(separatorValue);
-        const copyColName = ((disp.copyColumnName.value as { value: string })?.value ?? "").trim();
 
-        // 列名マッチング（大文字小文字・前後スペース無視）
-        const targetColIdx = copyColName === ""
+        // 列セレクター（ビジュアル内 <select>）
+        const selectorBar = this.buildColumnSelector(columns, selectedColName, fontSize);
+        this.target.appendChild(selectorBar);
+
+        // 選択列インデックス
+        const targetColIdx = selectedColName === ""
             ? -1
-            : columns.findIndex(c => c.displayName.trim().toLowerCase() === copyColName.toLowerCase());
-        const notFound = copyColName !== "" && targetColIdx === -1;
-
-        // インフォバー
-        const infoBar = document.createElement("div");
-        infoBar.className = "cv-infobar";
-        if (notFound) {
-            infoBar.classList.add("cv-infobar-warn");
-            const available = columns.map(c => `「${c.displayName}」`).join(" / ");
-            infoBar.textContent = `列「${copyColName}」が見つかりません。使用可能: ${available}`;
-        } else if (targetColIdx === -1) {
-            const names = columns.map(c => c.displayName).join(" / ");
-            infoBar.textContent = `コピー対象: 全列 — ${names}`;
-        } else {
-            infoBar.textContent = `コピー対象: 「${columns[targetColIdx].displayName}」`;
-            infoBar.classList.add("cv-infobar-target");
-        }
-        this.target.appendChild(infoBar);
+            : columns.findIndex(c => c.displayName === selectedColName);
 
         const table = document.createElement("div");
         table.className = "cv-table";
@@ -126,9 +87,7 @@ export class Visual implements IVisual {
             if (isTarget) cell.classList.add("cv-col-target");
             header.appendChild(cell);
         });
-        const headerBtn = document.createElement("div");
-        headerBtn.className = "cv-cell cv-btn-cell cv-header-cell";
-        header.appendChild(headerBtn);
+        header.appendChild(this.makeCell("cv-btn-cell cv-header-cell", ""));
         table.appendChild(header);
 
         // データ行
@@ -146,9 +105,6 @@ export class Visual implements IVisual {
                 rowEl.appendChild(cell);
             });
 
-            const btnCell = document.createElement("div");
-            btnCell.className = "cv-cell cv-btn-cell";
-
             const copyBtn = document.createElement("button");
             copyBtn.className = "cv-copy-btn";
             copyBtn.textContent = btn.buttonText.value || "コピー";
@@ -159,14 +115,71 @@ export class Visual implements IVisual {
             const copyText = (targetColIdx >= 0 && targetColIdx < row.length)
                 ? this.formatValue(row[targetColIdx])
                 : row.map(v => this.formatValue(v)).join(separator);
-            copyBtn.addEventListener("click", () => this.handleCopy(copyBtn, copyText, btn.buttonText.value || "コピー"));
+            copyBtn.addEventListener("click", () =>
+                this.handleCopy(copyBtn, copyText, btn.buttonText.value || "コピー")
+            );
 
+            const btnCell = document.createElement("div");
+            btnCell.className = "cv-cell cv-btn-cell";
             btnCell.appendChild(copyBtn);
             rowEl.appendChild(btnCell);
             table.appendChild(rowEl);
         });
 
         this.target.appendChild(table);
+    }
+
+    private buildColumnSelector(
+        columns: powerbi.DataViewMetadataColumn[],
+        selectedColName: string,
+        fontSize: number
+    ): HTMLElement {
+        const bar = document.createElement("div");
+        bar.className = "cv-selector-bar";
+
+        const label = document.createElement("span");
+        label.className = "cv-selector-label";
+        label.textContent = "コピーする列:";
+        label.style.fontSize = `${Math.max(10, fontSize - 2)}px`;
+
+        const select = document.createElement("select");
+        select.className = "cv-column-select";
+        select.style.fontSize = `${Math.max(10, fontSize - 2)}px`;
+
+        const allOption = document.createElement("option");
+        allOption.value = "";
+        allOption.textContent = "全列";
+        if (selectedColName === "") allOption.selected = true;
+        select.appendChild(allOption);
+
+        columns.forEach(col => {
+            const option = document.createElement("option");
+            option.value = col.displayName;
+            option.textContent = col.displayName;
+            if (col.displayName === selectedColName) option.selected = true;
+            select.appendChild(option);
+        });
+
+        select.addEventListener("change", () => {
+            this.host.persistProperties({
+                merge: [{
+                    objectName: "displaySettings",
+                    selector: null,
+                    properties: { copyColumnName: select.value },
+                }],
+            });
+        });
+
+        bar.appendChild(label);
+        bar.appendChild(select);
+        return bar;
+    }
+
+    private makeCell(className: string, text: string): HTMLElement {
+        const cell = document.createElement("div");
+        cell.className = `cv-cell ${className}`;
+        cell.textContent = text;
+        return cell;
     }
 
     private async handleCopy(btn: HTMLButtonElement, text: string, originalLabel: string): Promise<void> {
@@ -227,14 +240,6 @@ export class Visual implements IVisual {
     }
 
     public getFormattingModel(): powerbi.visuals.FormattingModel {
-        // アイテムリストを最新の列情報で更新（フォーマットペインを開くたびに呼ばれる）
-        const allItem = { displayName: "全列", value: "" };
-        const colItems = [
-            allItem,
-            ...this.currentColumns.map(c => ({ displayName: c.displayName, value: c.displayName })),
-        ];
-        this.formattingSettings.displaySettings.copyColumnName.items = colItems;
-
         return this.formattingSettingsService.buildFormattingModel(this.formattingSettings);
     }
 }
