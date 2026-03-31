@@ -55,10 +55,11 @@ export class Visual implements IVisual {
         const dropdown = this.formattingSettings.displaySettings.copyColumnName;
         dropdown.items = colItems;
 
-        // dataView.metadata.objects からユーザーが保存した生の値を読む
-        // Power BI は enumeration 型を value 文字列として保持する
-        const rawVal = dataView?.metadata?.objects
-            ?.["displaySettings"]?.["copyColumnName"] as string ?? "";
+        // dataView.metadata.objects から保存値を読む
+        // enumeration 型は文字列、または {value: string} で返る場合がある
+        const raw = dataView?.metadata?.objects?.["displaySettings"]?.["copyColumnName"];
+        const rawVal = typeof raw === "string" ? raw
+            : (raw as { value?: string } | undefined)?.value ?? "";
 
         const match = colItems.find(item => item.value === rawVal);
         dropdown.value = match ?? allItem;

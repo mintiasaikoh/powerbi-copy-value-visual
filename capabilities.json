@@ -91,9 +91,9 @@
           }
         },
         "copyColumnName": {
-          "displayName": "コピーする列名（空白=全列）",
+          "displayName": "コピーする列",
           "type": {
-            "text": true
+            "enumeration": []
           }
         }
       }
