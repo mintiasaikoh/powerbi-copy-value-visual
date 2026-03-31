@@ -18,6 +18,7 @@ export class Visual implements IVisual {
     private formattingSettings: VisualFormattingSettingsModel;
     private formattingSettingsService: FormattingSettingsService;
     private copyTimeouts: Map<HTMLButtonElement, ReturnType<typeof setTimeout>> = new Map();
+    private currentColumns: powerbi.DataViewMetadataColumn[] = [];
 
     constructor(options: VisualConstructorOptions) {
         this.host = options.host;
@@ -32,6 +33,10 @@ export class Visual implements IVisual {
             VisualFormattingSettingsModel,
             dataView
         );
+
+        if (dataView?.table?.columns) {
+            this.currentColumns = dataView.table.columns;
+        }
 
         this.render(dataView);
     }
@@ -58,7 +63,7 @@ export class Visual implements IVisual {
         const columns = dataView.table.columns;
         const separatorValue = (disp.separator.value as { value: string })?.value ?? "tab";
         const separator = this.getSeparatorChar(separatorValue);
-        const copyColName = (disp.copyColumnName.value || "").trim();
+        const copyColName = ((disp.copyColumnName.value as { value: string })?.value ?? "").trim();
 
         // 列名マッチング（大文字小文字・前後スペース無視）
         const targetColIdx = copyColName === ""
@@ -198,6 +203,21 @@ export class Visual implements IVisual {
     }
 
     public getFormattingModel(): powerbi.visuals.FormattingModel {
+        const allItem = { displayName: "全列", value: "" };
+        const colItems = [
+            allItem,
+            ...this.currentColumns.map(c => ({ displayName: c.displayName, value: c.displayName })),
+        ];
+
+        const dropdown = this.formattingSettings.displaySettings.copyColumnName;
+        dropdown.items = colItems;
+
+        // 現在の選択値が列一覧にない場合（フィールド構成変更時など）は「全列」にリセット
+        const currentVal = (dropdown.value as { value: string })?.value ?? "";
+        if (currentVal !== "" && !colItems.find(item => item.value === currentVal)) {
+            dropdown.value = allItem;
+        }
+
         return this.formattingSettingsService.buildFormattingModel(this.formattingSettings);
     }
 }

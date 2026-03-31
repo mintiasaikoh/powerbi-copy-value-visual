@@ -60,11 +60,11 @@ class DisplaySettingsCard extends FormattingSettingsCard {
         value: true,
     });
 
-    copyColumnName = new formattingSettings.TextInput({
+    copyColumnName = new formattingSettings.ItemDropdown({
         name: "copyColumnName",
-        displayName: "コピーする列名（空白=全列）",
-        placeholder: "例: 顧客ID",
-        value: "",
+        displayName: "コピーする列",
+        items: [{ displayName: "全列", value: "" }],
+        value: { displayName: "全列", value: "" },
     });
 
     name = "displaySettings";
