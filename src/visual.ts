@@ -29,16 +29,39 @@ export class Visual implements IVisual {
     public update(options: VisualUpdateOptions): void {
         const dataView: DataView = options.dataViews && options.dataViews[0];
 
+        if (dataView?.table?.columns) {
+            this.currentColumns = dataView.table.columns;
+        }
+
+        // populateFormattingSettingsModel は静的なアイテムリストで復元するため、
+        // ItemDropdown の選択値が動的列名の場合に失われる。
+        // そのため populate 後にアイテムと保存値を手動で復元する。
         this.formattingSettings = this.formattingSettingsService.populateFormattingSettingsModel(
             VisualFormattingSettingsModel,
             dataView
         );
 
-        if (dataView?.table?.columns) {
-            this.currentColumns = dataView.table.columns;
-        }
-
+        this.restoreColumnDropdown(dataView);
         this.render(dataView);
+    }
+
+    private restoreColumnDropdown(dataView: DataView): void {
+        const allItem = { displayName: "全列", value: "" };
+        const colItems = [
+            allItem,
+            ...this.currentColumns.map(c => ({ displayName: c.displayName, value: c.displayName })),
+        ];
+
+        const dropdown = this.formattingSettings.displaySettings.copyColumnName;
+        dropdown.items = colItems;
+
+        // dataView.metadata.objects からユーザーが保存した生の値を読む
+        // Power BI は enumeration 型を value 文字列として保持する
+        const rawVal = dataView?.metadata?.objects
+            ?.["displaySettings"]?.["copyColumnName"] as string ?? "";
+
+        const match = colItems.find(item => item.value === rawVal);
+        dropdown.value = match ?? allItem;
     }
 
     private render(dataView: DataView): void {
@@ -203,20 +226,13 @@ export class Visual implements IVisual {
     }
 
     public getFormattingModel(): powerbi.visuals.FormattingModel {
+        // アイテムリストを最新の列情報で更新（フォーマットペインを開くたびに呼ばれる）
         const allItem = { displayName: "全列", value: "" };
         const colItems = [
             allItem,
             ...this.currentColumns.map(c => ({ displayName: c.displayName, value: c.displayName })),
         ];
-
-        const dropdown = this.formattingSettings.displaySettings.copyColumnName;
-        dropdown.items = colItems;
-
-        // 現在の選択値が列一覧にない場合（フィールド構成変更時など）は「全列」にリセット
-        const currentVal = (dropdown.value as { value: string })?.value ?? "";
-        if (currentVal !== "" && !colItems.find(item => item.value === currentVal)) {
-            dropdown.value = allItem;
-        }
+        this.formattingSettings.displaySettings.copyColumnName.items = colItems;
 
         return this.formattingSettingsService.buildFormattingModel(this.formattingSettings);
     }
