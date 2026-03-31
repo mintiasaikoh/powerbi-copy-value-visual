@@ -89,6 +89,12 @@
           "type": {
             "bool": true
           }
+        },
+        "copyColumnName": {
+          "displayName": "コピーする列名（空白=全列）",
+          "type": {
+            "text": true
+          }
         }
       }
     }

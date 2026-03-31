@@ -58,20 +58,26 @@ export class Visual implements IVisual {
         const columns = dataView.table.columns;
         const separatorValue = (disp.separator.value as { value: string })?.value ?? "tab";
         const separator = this.getSeparatorChar(separatorValue);
-        const copyColIndex = Number(disp.copyColumnIndex.value) || 0; // 0=全列, 1始まり
-        const outOfRange = copyColIndex > columns.length;
+        const copyColName = (disp.copyColumnName.value || "").trim();
 
-        // インフォバー：コピー対象列を明示
+        // 列名マッチング（大文字小文字・前後スペース無視）
+        const targetColIdx = copyColName === ""
+            ? -1
+            : columns.findIndex(c => c.displayName.trim().toLowerCase() === copyColName.toLowerCase());
+        const notFound = copyColName !== "" && targetColIdx === -1;
+
+        // インフォバー
         const infoBar = document.createElement("div");
         infoBar.className = "cv-infobar";
-        if (outOfRange) {
+        if (notFound) {
             infoBar.classList.add("cv-infobar-warn");
-            infoBar.textContent = `列番号 ${copyColIndex} は範囲外です（フィールド数: ${columns.length}）。書式設定を確認してください。`;
-        } else if (copyColIndex === 0) {
-            const names = columns.map((c, i) => `${i + 1}: ${c.displayName}`).join("  /  ");
-            infoBar.textContent = `コピー対象: 全列  |  ${names}`;
+            const available = columns.map(c => `「${c.displayName}」`).join(" / ");
+            infoBar.textContent = `列「${copyColName}」が見つかりません。使用可能: ${available}`;
+        } else if (targetColIdx === -1) {
+            const names = columns.map(c => c.displayName).join(" / ");
+            infoBar.textContent = `コピー対象: 全列 — ${names}`;
         } else {
-            infoBar.textContent = `コピー対象: 列 ${copyColIndex}「${columns[copyColIndex - 1].displayName}」`;
+            infoBar.textContent = `コピー対象: 「${columns[targetColIdx].displayName}」`;
             infoBar.classList.add("cv-infobar-target");
         }
         this.target.appendChild(infoBar);
@@ -86,7 +92,7 @@ export class Visual implements IVisual {
             const cell = document.createElement("div");
             cell.className = "cv-cell cv-header-cell";
             cell.style.fontSize = `${fontSize}px`;
-            const isTarget = copyColIndex > 0 && copyColIndex === colIdx + 1;
+            const isTarget = targetColIdx === colIdx;
             cell.textContent = col.displayName + (isTarget ? " ★" : "");
             if (isTarget) cell.classList.add("cv-col-target");
             header.appendChild(cell);
@@ -104,8 +110,7 @@ export class Visual implements IVisual {
             row.forEach((val, colIdx) => {
                 const cell = document.createElement("div");
                 cell.className = "cv-cell";
-                const isTarget = copyColIndex > 0 && copyColIndex === colIdx + 1;
-                if (isTarget) cell.classList.add("cv-col-target");
+                if (targetColIdx === colIdx) cell.classList.add("cv-col-target");
                 cell.textContent = this.formatValue(val);
                 cell.style.fontSize = `${fontSize}px`;
                 cell.title = this.formatValue(val);
@@ -122,14 +127,9 @@ export class Visual implements IVisual {
             copyBtn.style.color = btn.fontColor.value.value || "#ffffff";
             copyBtn.style.fontSize = `${Math.max(10, fontSize - 2)}px`;
 
-            let copyText: string;
-            if (copyColIndex > 0 && copyColIndex <= row.length) {
-                // 指定列のみ
-                copyText = this.formatValue(row[copyColIndex - 1]);
-            } else {
-                // 全列（デフォルト）
-                copyText = row.map(v => this.formatValue(v)).join(separator);
-            }
+            const copyText = (targetColIdx >= 0 && targetColIdx < row.length)
+                ? this.formatValue(row[targetColIdx])
+                : row.map(v => this.formatValue(v)).join(separator);
             copyBtn.addEventListener("click", () => this.handleCopy(copyBtn, copyText, btn.buttonText.value || "コピー"));
 
             btnCell.appendChild(copyBtn);
