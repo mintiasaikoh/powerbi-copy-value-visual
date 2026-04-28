@@ -52,7 +52,7 @@ export class Visual implements IVisual {
         if (!dataView?.table?.rows?.length) {
             const placeholder = document.createElement("div");
             placeholder.className = "placeholder";
-            placeholder.textContent = "テーブルから行を選択してください";
+            placeholder.textContent = "対象がありません";
             placeholder.style.fontSize = `${fontSize}px`;
             this.target.appendChild(placeholder);
             return;
