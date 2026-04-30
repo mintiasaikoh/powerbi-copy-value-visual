@@ -134,8 +134,7 @@ div {
 
 .cv-btn-cell {
     flex: 0 0 auto;
-    width: 70px;
-    min-width: 70px;
+    width: max-content;
     padding: 4px 6px;
     display: flex;
     align-items: center;
@@ -143,8 +142,7 @@ div {
 }
 
 .cv-copy-btn {
-    width: 100%;
-    padding: 3px 6px;
+    padding: 3px 8px;
     background-color: @button-primary;
     color: #ffffff;
     border: none;
@@ -153,6 +151,8 @@ div {
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
+    overflow: visible;
+    width: max-content;
     transition: background-color 0.15s ease;
 
     &:hover {
