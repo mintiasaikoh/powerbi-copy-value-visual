@@ -167,3 +167,28 @@ div {
         background-color: @button-success;
     }
 }
+
+.cv-context-menu {
+    background: #ffffff;
+    border: 1px solid @border-color;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 140px;
+    overflow: hidden;
+    user-select: none;
+}
+
+.cv-context-item {
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+
+    &:hover {
+        background-color: #f0f0f0;
+    }
+
+    &:active {
+        background-color: #e5e5e5;
+    }
+}

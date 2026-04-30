@@ -18,6 +18,8 @@ export class Visual implements IVisual {
     private formattingSettings: VisualFormattingSettingsModel;
     private formattingSettingsService: FormattingSettingsService;
     private copyTimeouts: Map<HTMLButtonElement, ReturnType<typeof setTimeout>> = new Map();
+    private contextMenu: HTMLElement | null = null;
+    private dismissContextMenu: (() => void) | null = null;
 
     constructor(options: VisualConstructorOptions) {
         this.host = options.host;
@@ -43,6 +45,7 @@ export class Visual implements IVisual {
     private render(dataView: DataView, selectedColName: string): void {
         this.target.innerHTML = "";
         this.copyTimeouts.clear();
+        this.removeContextMenu();
         this.target.style.cssText = "display:flex;flex-direction:column;height:100%;overflow:hidden;";
 
         const disp = this.formattingSettings.displaySettings;
@@ -99,9 +102,17 @@ export class Visual implements IVisual {
                 const cell = document.createElement("div");
                 cell.className = "cv-cell";
                 if (targetColIdx === colIdx) cell.classList.add("cv-col-target");
-                cell.textContent = this.formatValue(val);
+                const cellText = this.formatValue(val);
+                cell.textContent = cellText;
                 cell.style.fontSize = `${fontSize}px`;
-                cell.title = this.formatValue(val);
+                cell.title = cellText;
+                cell.addEventListener("contextmenu", (e) => {
+                    e.preventDefault();
+                    const rowText = (targetColIdx >= 0 && targetColIdx < row.length)
+                        ? this.formatValue(row[targetColIdx])
+                        : row.map(v => this.formatValue(v)).join(separator);
+                    this.showContextMenu(e, cellText, rowText, cellText === rowText);
+                });
                 rowEl.appendChild(cell);
             });
 
@@ -173,6 +184,60 @@ export class Visual implements IVisual {
         bar.appendChild(label);
         bar.appendChild(select);
         return bar;
+    }
+
+    private showContextMenu(e: MouseEvent, cellText: string, rowText: string, isSame: boolean): void {
+        this.removeContextMenu();
+
+        const menu = document.createElement("div");
+        menu.className = "cv-context-menu";
+        menu.style.cssText = `position:fixed;left:${e.clientX}px;top:${e.clientY}px;z-index:9999;`;
+
+        const addItem = (label: string, text: string): void => {
+            const item = document.createElement("div");
+            item.className = "cv-context-item";
+            item.textContent = label;
+            item.addEventListener("click", () => {
+                this.copyText(text);
+                this.removeContextMenu();
+            });
+            menu.appendChild(item);
+        };
+
+        addItem("セルをコピー", cellText);
+        if (!isSame) addItem("行をコピー", rowText);
+
+        document.body.appendChild(menu);
+        this.contextMenu = menu;
+
+        const dismiss = () => this.removeContextMenu();
+        this.dismissContextMenu = dismiss;
+        setTimeout(() => document.addEventListener("click", dismiss, { once: true }), 0);
+    }
+
+    private removeContextMenu(): void {
+        if (this.contextMenu) {
+            this.contextMenu.remove();
+            this.contextMenu = null;
+        }
+        if (this.dismissContextMenu) {
+            document.removeEventListener("click", this.dismissContextMenu);
+            this.dismissContextMenu = null;
+        }
+    }
+
+    private async copyText(text: string): Promise<void> {
+        try {
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(text);
+            } else {
+                this.fallbackCopy(text);
+            }
+        } catch {
+            try { this.fallbackCopy(text); } catch (err) {
+                console.error("[CopyValueVisual] コピー失敗:", err);
+            }
+        }
     }
 
     private makeCell(className: string, text: string): HTMLElement {
