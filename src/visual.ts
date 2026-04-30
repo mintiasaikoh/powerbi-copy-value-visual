@@ -5,6 +5,7 @@ import { FormattingSettingsService } from "powerbi-visuals-utils-formattingmodel
 
 import VisualConstructorOptions = powerbi.extensibility.visual.VisualConstructorOptions;
 import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
+import VisualDataChangeOperationKind = powerbi.VisualDataChangeOperationKind;
 import IVisual = powerbi.extensibility.visual.IVisual;
 import IVisualHost = powerbi.extensibility.visual.IVisualHost;
 import DataView = powerbi.DataView;
@@ -20,6 +21,7 @@ export class Visual implements IVisual {
     private copyTimeouts: Map<HTMLButtonElement, ReturnType<typeof setTimeout>> = new Map();
     private contextMenu: HTMLElement | null = null;
     private dismissContextMenu: (() => void) | null = null;
+    private allRows: powerbi.PrimitiveValue[][] = [];
 
     constructor(options: VisualConstructorOptions) {
         this.host = options.host;
@@ -35,7 +37,20 @@ export class Visual implements IVisual {
             dataView
         );
 
-        // text 型で保存された選択列名を取得（確実に永続化される）
+        const isAppend = options.operationKind === VisualDataChangeOperationKind.Append;
+        const newRows = (dataView?.table?.rows as powerbi.PrimitiveValue[][] | undefined) ?? [];
+
+        if (isAppend) {
+            this.allRows = [...this.allRows, ...newRows];
+        } else {
+            this.allRows = [...newRows];
+        }
+
+        // さらにデータがある場合は追加取得
+        if (this.host.fetchMoreData && this.host.fetchMoreData()) {
+            return;
+        }
+
         const savedColName = dataView?.metadata?.objects
             ?.["displaySettings"]?.["copyColumnName"] as string ?? "";
 
@@ -52,7 +67,7 @@ export class Visual implements IVisual {
         const btn = this.formattingSettings.buttonSettings;
         const fontSize = Math.max(10, Math.min(Number(disp.fontSize.value) || 14, 32));
 
-        if (!dataView?.table?.rows?.length) {
+        if (!this.allRows.length) {
             const placeholder = document.createElement("div");
             placeholder.className = "placeholder";
             placeholder.textContent = "対象がありません";
@@ -61,16 +76,13 @@ export class Visual implements IVisual {
             return;
         }
 
-        const rows = dataView.table.rows as powerbi.PrimitiveValue[][];
         const columns = dataView.table.columns;
         const separatorValue = (disp.separator.value as { value: string })?.value ?? "tab";
         const separator = this.getSeparatorChar(separatorValue);
 
-        // 列セレクター（ビジュアル内 <select>）
         const selectorBar = this.buildColumnSelector(columns, selectedColName, fontSize);
         this.target.appendChild(selectorBar);
 
-        // 選択列インデックス
         const targetColIdx = selectedColName === ""
             ? -1
             : columns.findIndex(c => c.displayName === selectedColName);
@@ -94,7 +106,7 @@ export class Visual implements IVisual {
         table.appendChild(header);
 
         // データ行
-        rows.forEach((row, rowIndex) => {
+        this.allRows.forEach((row, rowIndex) => {
             const rowEl = document.createElement("div");
             rowEl.className = "cv-row" + (rowIndex % 2 === 1 ? " cv-row-alt" : "");
 
