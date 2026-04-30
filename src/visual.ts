@@ -22,6 +22,7 @@ export class Visual implements IVisual {
     private contextMenu: HTMLElement | null = null;
     private dismissContextMenu: (() => void) | null = null;
     private allRows: powerbi.PrimitiveValue[][] = [];
+    private lastDataView: DataView | null = null;
 
     constructor(options: VisualConstructorOptions) {
         this.host = options.host;
@@ -44,17 +45,23 @@ export class Visual implements IVisual {
             this.allRows = [...this.allRows, ...newRows];
         } else {
             this.allRows = [...newRows];
+            this.lastDataView = dataView;
         }
 
-        // さらにデータがある場合は追加取得
-        if (this.host.fetchMoreData && this.host.fetchMoreData()) {
-            return;
-        }
-
-        const savedColName = dataView?.metadata?.objects
+        // 有効な dataView を優先、なければ前回のものを使う
+        const activeDataView = dataView ?? this.lastDataView;
+        const savedColName = activeDataView?.metadata?.objects
             ?.["displaySettings"]?.["copyColumnName"] as string ?? "";
 
-        this.render(dataView, savedColName);
+        // 現在取得済みのデータで即描画
+        this.render(activeDataView, savedColName);
+
+        // バックグラウンドで追加取得（失敗しても描画には影響しない）
+        try {
+            this.host.fetchMoreData?.();
+        } catch {
+            // fetchMoreData 非対応環境では無視
+        }
     }
 
     private render(dataView: DataView, selectedColName: string): void {
